@@ -8,7 +8,7 @@ Start by looking at:
 
 For further information look at the 'Decisions' page.
 
-Use of AI
+Use of AI:
 I used AI a fairly decent amount in this project often to advise me on what the maths was actually doing as the concept of time series was totally new to me.
 I would occasionally use it to help me with code although I tried to limit this as it would contradict one of the main purposes of this project.
 
