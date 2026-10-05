@@ -1,0 +1,80 @@
+## Decisions 
+
+When I Started this project I had a major lack of direction as this is the first sort of project I have done;
+I wanted to model some Weather data to see if I could quantify climate change in my local area;
+
+-- Cleaning of Data and issues with decisions I made --
+I began by downloading a data set from the met office and trying to clean it by identifying extra characters on values that I wanted to use and changing '---' to NANs.
+I chose to use the maximum teprature data just to keep everything as simple as possible.
+This is where I unkowingly made a dodgy decision; I figured due to two gaps of data in 1940, 41 and 44 it would be easier to remove these years entirely and carry on as if they
+never happened. This was a bad idea as I inteded to compare my model with a SARIMA model that I would go on to fit but this clearly cannot be done as the number of observations
+has a large impact on comparison of values such as: Log Likelihood, AIC, BIC.
+To fix this you would use a Kalman filter to fill in values predicted by the model; This however took me away from finishing the actual project so I put it aside to do after I 
+finished this project.
+
+-- Using Classes to display Results --
+Starting on the Main part of the Harmonic and Auto Regression code I was new and unfamiliar with using classes so my initial code included just the function itself.
+To me this wasnt good enough as when looking at a model there are several values associated with it that you may want to access such as residuals and log likelihood etc.
+
+-- Fitting AR on Harmonic regression --
+During my first run over of my code i just fitted the Harmonic regression that handeled a linear trend term and harmonic terms, this wasnt bad but I wanted a closer fit.
+So after having gone through fitting SARIMA already I thought it wouldnt be too hard to fit an AR model on my residuals hence I recoded Quenouilles test to give me 
+the first lag that is significant. It is important to know that this method is vunerable to more complex processes but in general should be fine.
+
+-- SARIMA Model -- 
+As the Stats models module for SARIMAX has a Kalman filter built in i started by defining SARIMA_data as the raw data with no values dropped.
+Then for simplicity, I preformed tests on the data with the years missing years removed to keep NANs from interfering and to stop issues with having strange ACF values.
+This is reasonable as fill the NANs with predicted values you must already have a model Which I did not.
+
+-- Determining if a Non Seasonal differencing term is necessary --
+It is common practice to test using ADF and KPSS as they test both wether a unit root exists (series is non statonary) but from difference H0s;
+ADF assumes a unit root exists whereas KPSS assumes Stationarity. Both for stationarity arround a mean and arround a linear trend gave me non stationary 
+so it follows that there would be no term by term differencing required from my series.
+
+-- Determining if there is a Seasonal differencing term reguired -- 
+CH and OCSB tests do the same thing as KPSS and ADF (testing from a different hypothesis) with their main difference being that aside from testing for a seasonal unit root,
+they cant cope with a linear trend present so prior to preforming the test I used a least squares regression to remove the linear trend;
+Both tests resulted in D = 0 which was concerning for me as by this point I had already finished my code and was rewriting to get rid of any errors,
+such as using certain series in testing that would lead to incorrect results. Previously I had got a contradiction and a further tested for a drop in variance
+to conclude that differencing was neccecary. This was an invalid method in my current case as it relied on
+a change in variance between a differenced and non differenced series which is not a meaninful test on wether a seasonal unit root exists. Testing the Variance like this is more 
+justified to prevent over differencing. 
+
+-- Going Forward with d = 0, D = 0 --
+In my first run of coding where I had D = 1, the process when much more smoothly as I proceeded to test using Bartlett's approximation and further testing using Quenouille's test.
+Whereas now I checked my Seasonal ACF and PACF values to see if there were any noticable cut off points to help inform me wether I had an MA/AR process.
+After looking at their graphs it seemed to me that I could have an ARMA process as the ACF at seasonal lags never had a sharp cut off. Obviously performing Bartlett's test
+on this data would lead to no significant conclusion as it directly depends on acf values.
+
+-- Seasonal aplication of EACF --
+To identify the paramaters of your ARMA process it is common to use an EACF "test"; 
+which calculates acf values then fits an AR model order 1, calculates residuals then, calculates acf on thoes and continues this up to AR(p).
+After recieving my result my confusion was furthered as there was in the True/False significance matrix there was no permenant row of true values past a certain point like you 
+would expect to see. So given my past experience with having a easy time with further testing I tried it on the Differeced series which gave me the result I saw before.
+AR(0), D = 1, MA(1).
+
+-- Non seasonal testing --
+Using the eacf test while setting the period = 1, the resulting matrix inferred that the process was AR(0), MA(3) so to check this I used Bartlett's then Quenouille's on the 
+resulting residuals after fitting MA(2). Crucially Bartlett's test suggested that MA(2) was more correct and that after Quenouille's suggested AR(0) was correct. As these two
+differences are relatively small I took a look at the final model with Both models fully fitted, and then looked at the BIC values and compared to see which was lower.
+I looked at BIC instead of AIC as BIC as penalty term kln(n) where k is number of paramaters and n is number of observations; this is important as AIC just has penality term 2k
+this does not depend on n hence rewards models for using more terms in my case n = 1743. With using BIC it rewards me for identifying key driving factors of the series.
+Hence the final model is SARIMAX(0,0,1)(0,1,1,12) with a linear trend term added. The linear trend term is not entirely neccecary as it is very small I mainly wanted it for 
+comparison purposes.
+
+
+-- Why Bartlett's aprox and Quenouille's test --
+Bartlett's aprox is good as aside from the initial aproximation itself after you spesify a spesific hypothesis the maths becomes simple meaning it is easy to code also
+ACF suposedly has a sharp cut off after lag q making it easy to identify significant values for a True MA(q) process.
+Quenouilles test is useful as like Bartlett's the maths is relativly simple making it easy to code and it gives useful information for an AR(p) process as each component 
+it tests is independant as it uses Theoretical PACF values. Hence both tests were convenient for checking my results.
+
+
+
+
+
+
+
+
+
+
